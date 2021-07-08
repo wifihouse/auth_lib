@@ -5,7 +5,7 @@ import 'package:retrofit/retrofit.dart';
 
 part 'rest_api.g.dart';
 
-@RestApi(baseUrl: WP_AUTH_HOST)
+@RestApi(baseUrl: "")
 abstract class RestAPI {
   factory RestAPI(Dio dio, {String baseUrl}) = _RestAPI;
 

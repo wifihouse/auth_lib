@@ -1,3 +1,4 @@
+import 'package:auth_wifihouse/auth_config.dart';
 import 'package:auth_wifihouse/common/rest_api.dart';
 import 'package:auth_wifihouse/services/wf_auth_service.dart';
 import 'package:auth_wifihouse/utils/net_utils.dart';
@@ -26,7 +27,8 @@ class BaseService extends GetxService {
       print(options.headers);
       dio.interceptors.requestLock.unlock();
     }));
-    client = RestAPI(dio);
+    AuthConfig config = Get.find();
+    client = RestAPI(dio, baseUrl: config.host ?? "http://localhost:4000");
     super.onInit();
   }
 }

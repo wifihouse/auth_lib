@@ -9,7 +9,6 @@ part of 'rest_api.dart';
 class _RestAPI implements RestAPI {
   _RestAPI(this._dio, {this.baseUrl}) {
     ArgumentError.checkNotNull(_dio, '_dio');
-    baseUrl ??= 'http://165.22.250.128:4000/api/v1/';
   }
 
   final Dio _dio;
