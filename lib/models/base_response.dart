@@ -4,10 +4,10 @@ part 'base_response.g.dart';
 @JsonSerializable()
 class BaseResponse<T> {
   int code;
-  String message;
+  String? message;
   dynamic results;
 
-  BaseResponse({this.code, this.message, this.results});
+  BaseResponse({required this.code, this.message, required this.results});
 
   factory BaseResponse.fromJson(Map<String, dynamic> json) =>
       _$BaseResponseFromJson(json);

@@ -9,7 +9,7 @@ part of 'base_response.dart';
 BaseResponse<T> _$BaseResponseFromJson<T>(Map<String, dynamic> json) {
   return BaseResponse<T>(
     code: json['code'] as int,
-    message: json['message'] as String,
+    message: json['message'] as String?,
     results: json['results'],
   );
 }

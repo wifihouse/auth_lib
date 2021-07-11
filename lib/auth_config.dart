@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/instance_manager.dart';
 
 class AuthConfig {
-  String host;
+  String? host;
 
   AuthConfig({this.host});
 }

@@ -1,3 +1,4 @@
+// @dart=2.9
 import 'package:auth_wifihouse/common/base_service.dart';
 import 'package:auth_wifihouse/common/config.dart';
 import 'package:auth_wifihouse/models/base_response.dart';
@@ -19,7 +20,6 @@ class WfAuthService<T> extends BaseService {
   WfLocalService localService;
   String actualCode;
   FirebaseAuth get fbAuth => FirebaseAuth.instance;
-  var firebaseUser = Rx<User>();
   User get currentUser => fbAuth.currentUser;
   WfAuthService({@required this.localService});
 

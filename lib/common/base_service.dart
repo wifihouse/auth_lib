@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
 class BaseService extends GetxService {
-  RestAPI client;
+  late RestAPI client;
   final dio = Dio();
 
   @override
@@ -17,7 +17,7 @@ class BaseService extends GetxService {
         request: true,
         requestBody: true,
         logPrint: NetUtils.printCustom));
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (Options options) {
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
       dio.interceptors.requestLock.lock();
       WfAuthService authService = Get.find();
       final token = authService.getAccessToken();
@@ -26,6 +26,7 @@ class BaseService extends GetxService {
       }
       print(options.headers);
       dio.interceptors.requestLock.unlock();
+      handler.next(options);
     }));
     AuthConfig config = Get.find();
     client = RestAPI(dio, baseUrl: config.host ?? "http://localhost:4000");

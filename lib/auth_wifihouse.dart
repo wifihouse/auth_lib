@@ -14,7 +14,7 @@ class AuthWifihouse {
     return version;
   }
 
-  static void init({AuthConfig config}) {
+  static void init({required AuthConfig config}) {
     Get.put<AuthConfig>(config, permanent: true);
     Get.put<WfLocalService>(WfLocalService(), permanent: true);
     Get.put<WfAuthService>(WfAuthService(localService: Get.find()),
