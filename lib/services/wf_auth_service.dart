@@ -1,9 +1,10 @@
 // @dart=2.9
+import 'dart:async';
+
 import 'package:auth_wifihouse/common/base_service.dart';
 import 'package:auth_wifihouse/common/config.dart';
 import 'package:auth_wifihouse/models/base_response.dart';
 import 'package:auth_wifihouse/modules/code_input_dialog.dart';
-import 'package:auth_wifihouse/utils/net_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,6 +23,12 @@ class WfAuthService<T> extends BaseService {
   FirebaseAuth get fbAuth => FirebaseAuth.instance;
   User get currentUser => fbAuth.currentUser;
   WfAuthService({@required this.localService});
+
+  final Map cancelResponse = {"code": 100, "message": "Canceled"};
+  final Map invalidPhoneResponse = {"code": 101, "message": "Invalid phone"};
+  Map buildErrorResponse(String message) {
+    return {"code": 500, "message": message};
+  }
 
   setAccessToken(String token) {
     _accessToken = token;
@@ -153,17 +160,24 @@ class WfAuthService<T> extends BaseService {
 
   Future<Map> signInWithGoogle() async {
     final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
+    print(googleSignInAccount);
     if (googleSignInAccount != null) {
       final GoogleSignInAuthentication googleAuth =
           await googleSignInAccount.authentication;
       final String token = googleAuth.idToken;
       print('@googleToken $token');
-      BaseResponse response = await client.googleLogin({"googleToken": token});
-      setAccessToken(response.results['token']);
-      cacheLoginType(GOOGLE_LOGIN_TYPE);
+      BaseResponse response;
+      try {
+        response = await client.googleLogin({"googleToken": token});
+        setAccessToken(response.results['token']);
+        cacheLoginType(GOOGLE_LOGIN_TYPE);
+      } catch (e) {
+        return buildErrorResponse(e.toString());
+      }
       return response.toJson();
+    } else {
+      return cancelResponse;
     }
-    return null;
   }
 
   Future<Map> signInWithFacebook() async {
@@ -171,24 +185,23 @@ class WfAuthService<T> extends BaseService {
     FacebookAccessToken facebookAccessToken = result.accessToken;
     switch (result.status) {
       case FacebookLoginStatus.error:
-        return throw Exception("Login error");
-        // alertDialog(Get.context,
-        //     title: Keys.notificationTitle.tr,
-        //     content: Keys.loginFailMessage.tr);
-        // // print("Error");
-        // // return null;
+        return buildErrorResponse(result.errorMessage);
         break;
       case FacebookLoginStatus.cancelledByUser:
-        return throw Exception("Cancelled");
-      // print("CancelledByUser");
-      // break;
+        return cancelResponse;
       case FacebookLoginStatus.loggedIn:
         final String token = facebookAccessToken.token;
         print('@facebookToken $token');
-        BaseResponse response =
-            await client.googleLogin({"facebookToken": token});
-        setAccessToken(response.results['token']);
-        cacheLoginType(FACEBOOK_LOGIN_TYPE);
+        BaseResponse response;
+        try {
+          response = await client.facebookLogin({"facebookToken": token});
+          if (response.code == 200) {
+            setAccessToken(response.results['token']);
+            cacheLoginType(FACEBOOK_LOGIN_TYPE);
+          }
+        } catch (e) {
+          return buildErrorResponse(e.toString());
+        }
         return response.toJson();
     }
     return null;
@@ -203,26 +216,36 @@ class WfAuthService<T> extends BaseService {
     );
     final String token = credential.identityToken;
     print('@appleToken $token');
-    BaseResponse response = await client.googleLogin({"appleToken": token});
-    setAccessToken(response.results['token']);
-    cacheLoginType(APPLE_LOGIN_TYPE);
+
+    BaseResponse response;
+    try {
+      response = await client.appleLogin({"appleToken": token});
+      setAccessToken(response.results['token']);
+      cacheLoginType(APPLE_LOGIN_TYPE);
+    } catch (e) {
+      return buildErrorResponse(e.toString());
+    }
     return response.toJson();
   }
 
-  Future signInWithPhone(
-      String phoneNumber, Function(Map) completed, Function(int code) error) {
-    return FirebaseAuth.instance.verifyPhoneNumber(
+  Future<Map> signInWithPhone(String phoneNumber) {
+    Completer completer = Completer<Map>();
+    FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
         try {
           final res = await _parseFirebaseToken(credential);
-          completed(res);
+          completer.complete(res);
         } catch (e) {
-          error(1);
+          completer.complete(buildErrorResponse(e.toString()));
         }
       },
       verificationFailed: (FirebaseAuthException e) {
-        return throw Exception("Verify error $e");
+        if (e.code == 'invalid-phone-number') {
+          completer.complete(invalidPhoneResponse);
+        } else {
+          completer.complete(buildErrorResponse(e.toString()));
+        }
       },
       codeSent: (String verificationId, int resendToken) {
         Navigator.push(
@@ -232,21 +255,19 @@ class WfAuthService<T> extends BaseService {
                   title: 'Verify phone number',
                   phone: phoneNumber,
                   cancelPressed: () {
-                    error(0);
+                    completer.complete(cancelResponse);
                     Get.back();
                   },
                   confirmCodePressed: (code) async {
-                    try {
-                      PhoneAuthCredential credential =
-                          PhoneAuthProvider.credential(
-                              verificationId: verificationId, smsCode: code);
-                      final res = await _parseFirebaseToken(credential);
-                      completed(res);
-                    } catch (e) {
-                      error(1);
-                    }
+                    PhoneAuthCredential credential =
+                        PhoneAuthProvider.credential(
+                            verificationId: verificationId, smsCode: code);
+                    final res = await _parseFirebaseToken(credential);
+                    completer.complete(res);
                   },
-                  resendPressed: () {}),
+                  resendPressed: () {
+                    // Todo plz handle this case
+                  }),
               // fullscreenDialog: true,
             ));
       },
@@ -254,6 +275,8 @@ class WfAuthService<T> extends BaseService {
         print("@phoneauth timeout");
       },
     );
+
+    return completer.future;
   }
 
   Future<Map> _parseFirebaseToken(PhoneAuthCredential credential) async {
@@ -261,9 +284,14 @@ class WfAuthService<T> extends BaseService {
     String token = await authResult.user.getIdToken();
     print("@phonetoken $token");
 
-    BaseResponse response = await client.phoneLogin({"firebaseToken": token});
-    setAccessToken(response.results['token']);
-    cacheLoginType(PHONE_LOGIN_TYPE);
+    BaseResponse response;
+    try {
+      response = await client.phoneLogin({"firebaseToken": token});
+      setAccessToken(response.results['token']);
+      cacheLoginType(PHONE_LOGIN_TYPE);
+    } catch (e) {
+      return buildErrorResponse(e.toString());
+    }
     return response.toJson();
   }
 

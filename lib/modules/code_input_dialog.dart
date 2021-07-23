@@ -9,7 +9,7 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 
 const BACKGROUND_2 = const Color(0XFF2E3840);
 const FC = const Color(0XFF67A1F3);
-const WHITE = const Color(0xFFFFFF);
+const WHITE = const Color(0xFFFFFFFF);
 
 class CodeInputDialog extends StatefulWidget {
   final String title;
@@ -100,7 +100,7 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                         fieldWidth: 40,
                         activeFillColor: WHITE,
                         activeColor: WHITE,
-                        selectedColor: BACKGROUND_2,
+                        selectedColor: Colors.grey,
                         disabledColor: Colors.grey,
                         borderWidth: 1,
                         inactiveFillColor: WHITE,
