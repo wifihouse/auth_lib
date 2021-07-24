@@ -207,6 +207,9 @@ class WfAuthService<T> extends BaseService {
     return null;
   }
 
+  Future<bool> supportAppleSignin() {
+    return SignInWithApple.isAvailable();
+  }
   Future<Map> signInWithApple() async {
     final credential = await SignInWithApple.getAppleIDCredential(
       scopes: [
