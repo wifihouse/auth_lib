@@ -18,7 +18,7 @@ dependencies:
   firebase_auth: ^2.0.0
   google_sign_in: ^5.0.4
   flutter_facebook_login: ^3.0.0
-  sign_in_with_apple: ^3.0.0
+  sign_in_with_apple: ^3.2.0
   pin_code_fields: ^7.2.0
 
 
