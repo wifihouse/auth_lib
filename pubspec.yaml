@@ -15,7 +15,7 @@ dependencies:
   get_storage: ^2.0.2
   dio: ^4.0.0
   retrofit: ^2.0.0
-  firebase_auth: ^2.0.0
+  firebase_auth: ^3.1.4
   google_sign_in: ^5.0.4
   flutter_facebook_login: ^3.0.0
   sign_in_with_apple: ^3.2.0
