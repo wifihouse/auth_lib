@@ -1,28 +1,28 @@
-// @dart=2.9
 import 'dart:async';
-
 import 'package:auth_wifihouse/common/base_service.dart';
 import 'package:auth_wifihouse/common/config.dart';
 import 'package:auth_wifihouse/models/base_response.dart';
 import 'package:auth_wifihouse/modules/code_input_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
-import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'wf_local_service.dart';
 
 class WfAuthService<T> extends BaseService {
-  String _accessToken;
-  GoogleSignIn googleSignIn = GoogleSignIn();
-  FacebookLogin facebookLogin = FacebookLogin();
-
   WfLocalService localService;
-  String actualCode;
+  WfAuthService({required this.localService});
+
+  GoogleSignIn googleSignIn = GoogleSignIn();
+  late FacebookAuth _facebookAuth;
+
+  String? actualCode;
+  String? _accessToken;
+
   FirebaseAuth get fbAuth => FirebaseAuth.instance;
-  User get currentUser => fbAuth.currentUser;
-  WfAuthService({@required this.localService});
+  User? get currentUser => fbAuth.currentUser;
 
   final Map cancelResponse = {"code": 100, "message": "Canceled"};
   final Map invalidPhoneResponse = {"code": 101, "message": "Invalid phone"};
@@ -39,10 +39,10 @@ class WfAuthService<T> extends BaseService {
     localService.write(WfLocalService.LOGIN_TYPE, type);
   }
 
-  String getAccessToken() {
+  String? getAccessToken() {
     _accessToken = localService.token;
     if (_accessToken?.isNotEmpty == true) {
-      return "Bearer " + _accessToken;
+      return "Bearer " + _accessToken!;
     }
     return null;
   }
@@ -159,12 +159,13 @@ class WfAuthService<T> extends BaseService {
   // }
 
   Future<Map> signInWithGoogle() async {
-    final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
+    final GoogleSignInAccount? googleSignInAccount =
+        await googleSignIn.signIn();
     print(googleSignInAccount);
     if (googleSignInAccount != null) {
       final GoogleSignInAuthentication googleAuth =
           await googleSignInAccount.authentication;
-      final String token = googleAuth.idToken;
+      final String? token = googleAuth.idToken;
       print('@googleToken $token');
       BaseResponse response;
       try {
@@ -180,17 +181,18 @@ class WfAuthService<T> extends BaseService {
     }
   }
 
-  Future<Map> signInWithFacebook() async {
-    final FacebookLoginResult result = await facebookLogin.logIn(['email']);
-    FacebookAccessToken facebookAccessToken = result.accessToken;
+  Future<Map?> signInWithFacebook() async {
+    final LoginResult result = await _facebookAuth.login();     
+
+    // final FacebookLoginResult result = await facebookLogin.logIn(['email']);
+    // FacebookAccessToken facebookAccessToken = result.accessToken;
     switch (result.status) {
-      case FacebookLoginStatus.error:
-        return buildErrorResponse(result.errorMessage);
-        break;
-      case FacebookLoginStatus.cancelledByUser:
+      case LoginStatus.failed:
+        return buildErrorResponse(result.message!);        
+      case LoginStatus.cancelled:
         return cancelResponse;
-      case FacebookLoginStatus.loggedIn:
-        final String token = facebookAccessToken.token;
+      case LoginStatus.success:
+        final String token = (await this._facebookAuth.accessToken) as String;
         print('@facebookToken $token');
         BaseResponse response;
         try {
@@ -203,6 +205,7 @@ class WfAuthService<T> extends BaseService {
           return buildErrorResponse(e.toString());
         }
         return response.toJson();
+        default:
     }
     return null;
   }
@@ -210,6 +213,7 @@ class WfAuthService<T> extends BaseService {
   Future<bool> supportAppleSignin() {
     return SignInWithApple.isAvailable();
   }
+
   Future<Map> signInWithApple() async {
     final credential = await SignInWithApple.getAppleIDCredential(
       scopes: [
@@ -217,7 +221,7 @@ class WfAuthService<T> extends BaseService {
         AppleIDAuthorizationScopes.fullName,
       ],
     );
-    final String token = credential.identityToken;
+    final String? token = credential.identityToken;
     print('@appleToken $token');
 
     BaseResponse response;
@@ -231,7 +235,7 @@ class WfAuthService<T> extends BaseService {
     return response.toJson();
   }
 
-  Future<Map> signInWithPhone(String phoneNumber) {
+  Future<dynamic> signInWithPhone(String phoneNumber) {
     Completer completer = Completer<Map>();
     FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: phoneNumber,
@@ -250,9 +254,9 @@ class WfAuthService<T> extends BaseService {
           completer.complete(buildErrorResponse(e.toString()));
         }
       },
-      codeSent: (String verificationId, int resendToken) {
+      codeSent: ( verificationId,  resendToken) {
         Navigator.push(
-            Get.context,
+            Get.context!,
             new MaterialPageRoute(
               builder: (BuildContext context) => CodeInputDialog(
                   title: 'Verify phone number',
@@ -284,7 +288,7 @@ class WfAuthService<T> extends BaseService {
 
   Future<Map> _parseFirebaseToken(PhoneAuthCredential credential) async {
     UserCredential authResult = await fbAuth.signInWithCredential(credential);
-    String token = await authResult.user.getIdToken();
+    String token = await authResult.user!.getIdToken();
     print("@phonetoken $token");
 
     BaseResponse response;
@@ -305,7 +309,7 @@ class WfAuthService<T> extends BaseService {
         await googleSignIn.signOut();
         break;
       case FACEBOOK_LOGIN_TYPE:
-        facebookLogin.logOut();
+        _facebookAuth.logOut();
         break;
       case APPLE_LOGIN_TYPE:
         print("@nothing!");

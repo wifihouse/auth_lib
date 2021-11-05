@@ -21,7 +21,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     initPlatformState();
 
-    AuthWifihouse.init<Account>((map) => Account());
+    // AuthWifihouse.init<Account>((map) => Account());
     AuthWifihouse.authService.signInWithGoogle();
     AuthWifihouse.authService.signOut();
   }
@@ -33,7 +33,7 @@ class _MyAppState extends State<MyApp> {
     // We also handle the message potentially returning null.
     try {
       platformVersion =
-          await AuthWifihouse.platformVersion ?? 'Unknown platform version';
+          await AuthWifihouse.platformVersion;
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }

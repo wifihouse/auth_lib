@@ -1,4 +1,3 @@
-import 'package:auth_wifihouse/common/config.dart';
 import 'package:auth_wifihouse/models/base_response.dart';
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';

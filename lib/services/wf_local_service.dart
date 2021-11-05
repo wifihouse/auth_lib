@@ -1,4 +1,3 @@
-// @dart=2.9
 import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -16,13 +15,13 @@ class WfLocalService extends GetxService {
 
   static const String LOGIN_TYPE = "_loginType";
 
-  GetStorage _storage;
+  GetStorage? _storage;
 
   GetStorage get box {
     if (_storage == null) {
       _storage = GetStorage();
     }
-    return _storage;
+    return _storage!;
   }
 
   Future get init => box.initStorage;
@@ -36,7 +35,7 @@ class WfLocalService extends GetxService {
   }
 
   bool isFistTimeUse() {
-    bool v = box.read(FIRST_TIME_USE);
+    bool? v = box.read(FIRST_TIME_USE);
     return v == null;
   }
 

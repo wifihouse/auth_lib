@@ -1,7 +1,4 @@
-// @dart=2.9
 import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -19,11 +16,11 @@ class CodeInputDialog extends StatefulWidget {
   final Function resendPressed;
 
   CodeInputDialog(
-      {this.title,
-      this.phone,
-      this.confirmCodePressed,
-      this.cancelPressed,
-      this.resendPressed});
+      {required this.title,
+      required this.phone,
+      required this.confirmCodePressed,
+      required this.cancelPressed,
+      required this.resendPressed});
 
   @override
   State<StatefulWidget> createState() {
@@ -121,7 +118,7 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                       )
                     ],
                     onCompleted: (v) {
-                      formKey.currentState.validate();
+                      formKey.currentState!.validate();
                       if (currentText.value.length != 6) {
                         errorController.add(ErrorAnimationType.shake);
                       } else {
@@ -141,7 +138,7 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                   ))),
 
           GestureDetector(
-            onTap: widget.resendPressed,
+            onTap: () => widget.resendPressed,
             child: Container(
                 alignment: Alignment.center,
                 padding: EdgeInsets.only(bottom: 10),
@@ -194,13 +191,11 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        widget.title != null
-                            ? Text(widget.title,
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white))
-                            : Container(),
+                        Text(widget.title,
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
                         IconButton(
                           onPressed: () {
                             widget.cancelPressed();

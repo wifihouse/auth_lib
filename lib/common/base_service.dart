@@ -1,6 +1,7 @@
 import 'package:auth_wifihouse/auth_config.dart';
 import 'package:auth_wifihouse/common/rest_api.dart';
 import 'package:auth_wifihouse/services/wf_auth_service.dart';
+// ignore: import_of_legacy_library_into_null_safe
 import 'package:auth_wifihouse/utils/net_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
