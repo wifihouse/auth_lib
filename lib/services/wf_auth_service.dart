@@ -16,7 +16,7 @@ class WfAuthService<T> extends BaseService {
   WfAuthService({required this.localService});
 
   GoogleSignIn googleSignIn = GoogleSignIn();
-  late FacebookAuth _facebookAuth;
+  FacebookAuth _facebookAuth = FacebookAuth.instance;
 
   String? actualCode;
   String? _accessToken;
