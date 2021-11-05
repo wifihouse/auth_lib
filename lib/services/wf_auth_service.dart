@@ -183,31 +183,36 @@ class WfAuthService<T> extends BaseService {
 
   Future<Map?> signInWithFacebook() async {
     print("isWebSdkInitialized ${this._facebookAuth.isWebSdkInitialized}");
-    print("isAutoLogAppEventsEnabled ${await this._facebookAuth.isAutoLogAppEventsEnabled}");
-    final LoginResult result = await _facebookAuth.login();     
+    print(
+        "isAutoLogAppEventsEnabled ${await this._facebookAuth.isAutoLogAppEventsEnabled}");
+    final LoginResult result = await _facebookAuth.login();
 
     // final FacebookLoginResult result = await facebookLogin.logIn(['email']);
     // FacebookAccessToken facebookAccessToken = result.accessToken;
     switch (result.status) {
       case LoginStatus.failed:
-        return buildErrorResponse(result.message!);        
+        return buildErrorResponse(result.message!);
       case LoginStatus.cancelled:
         return cancelResponse;
       case LoginStatus.success:
-        final String token = (await this._facebookAuth.accessToken) as String;
-        print('@facebookToken $token');
-        BaseResponse response;
-        try {
-          response = await client.facebookLogin({"facebookToken": token});
-          if (response.code == 200) {
-            setAccessToken(response.results['token']);
-            cacheLoginType(FACEBOOK_LOGIN_TYPE);
+        var token = await this._facebookAuth.accessToken;
+        if (token != null) {
+          print('@facebookToken ${token.token}}');
+          BaseResponse response;
+          try {
+            response = await client.facebookLogin({"facebookToken": token});
+            if (response.code == 200) {
+              setAccessToken(response.results['token']);
+              cacheLoginType(FACEBOOK_LOGIN_TYPE);
+            }
+          } catch (e) {
+            return buildErrorResponse(e.toString());
           }
-        } catch (e) {
-          return buildErrorResponse(e.toString());
+          return response.toJson();
+        } else {
+          return null;
         }
-        return response.toJson();
-        default:
+      default:
     }
     return null;
   }
@@ -256,7 +261,7 @@ class WfAuthService<T> extends BaseService {
           completer.complete(buildErrorResponse(e.toString()));
         }
       },
-      codeSent: ( verificationId,  resendToken) {
+      codeSent: (verificationId, resendToken) {
         Navigator.push(
             Get.context!,
             new MaterialPageRoute(
