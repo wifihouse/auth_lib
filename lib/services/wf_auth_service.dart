@@ -182,6 +182,8 @@ class WfAuthService<T> extends BaseService {
   }
 
   Future<Map?> signInWithFacebook() async {
+    print("isWebSdkInitialized ${this._facebookAuth.isWebSdkInitialized}");
+    print("isAutoLogAppEventsEnabled ${await this._facebookAuth.isAutoLogAppEventsEnabled}");
     final LoginResult result = await _facebookAuth.login();     
 
     // final FacebookLoginResult result = await facebookLogin.logIn(['email']);

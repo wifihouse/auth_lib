@@ -15,7 +15,7 @@ class AuthWifihouse {
   }
 
   static void init({required AuthConfig config}) {
-     FacebookAuth.instance.webInitialize(
+    FacebookAuth.instance.webInitialize(
       appId: config.facebookId ?? '',
       cookie: true,
       xfbml: true,
