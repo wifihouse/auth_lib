@@ -200,7 +200,7 @@ class WfAuthService<T> extends BaseService {
           print('@facebookToken ${token.token}}');
           BaseResponse response;
           try {
-            response = await client.facebookLogin({"facebookToken": token});
+            response = await client.facebookLogin({"facebookToken": token.token});
             if (response.code == 200) {
               setAccessToken(response.results['token']);
               cacheLoginType(FACEBOOK_LOGIN_TYPE);
