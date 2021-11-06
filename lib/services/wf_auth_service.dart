@@ -210,7 +210,7 @@ class WfAuthService<T> extends BaseService {
           }
           return response.toJson();
         } else {
-          return null;
+          return buildErrorResponse('Invalid FB token');
         }
       default:
     }
