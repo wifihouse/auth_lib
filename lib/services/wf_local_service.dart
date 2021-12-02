@@ -46,5 +46,5 @@ class WfLocalService extends GetxService {
   String read(String key) => box.read(key);
   bool has(String key) => box.hasData(key);
 
-  String get token => box.read('_token');
+  String? get token => box.read('_token');
 }
