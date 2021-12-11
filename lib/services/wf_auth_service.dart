@@ -170,52 +170,44 @@ class WfAuthService<T> extends BaseService {
     }
   }
 
-  Future<PhoneAuthResult> siginInWithPhoneV2(String phoneNumber) {
-    final completer = Completer<PhoneAuthResult>();
+  void siginInWithPhoneV2(
+      String phoneNumber, Function(PhoneAuthResult) onData) {
     FirebaseAuth.instance.verifyPhoneNumber(
+      timeout: Duration(seconds: 120),
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
-        if (!completer.isCompleted) {
-          try {
-            final res = await _parseFirebaseToken(credential);
-            final completeResponse =
-                PhoneAuthResult(PhoneAuthStatus.completed, user: res);
-            completer.complete(completeResponse);
-          } catch (e) {
-            final errorResponse = PhoneAuthResult(
-                PhoneAuthStatus.register_error,
-                error: e.toString());
-            completer.complete(errorResponse);
-          }
+        try {
+          final res = await _parseFirebaseToken(credential);
+          final completeResponse =
+              PhoneAuthResult(PhoneAuthStatus.completed, user: res);
+          onData(completeResponse);
+        } catch (e) {
+          final errorResponse = PhoneAuthResult(PhoneAuthStatus.register_error,
+              error: e.toString());
+          onData(errorResponse);
         }
       },
       verificationFailed: (FirebaseAuthException e) {
         if (e.code == 'invalid-phone-number') {
           final errorResponse =
               PhoneAuthResult(PhoneAuthStatus.phone_number_error);
-          completer.complete(errorResponse);
+          onData(errorResponse);
         } else {
           final errorResponse =
               PhoneAuthResult(PhoneAuthStatus.error, error: e.toString());
-          completer.complete(errorResponse);
+          onData(errorResponse);
         }
       },
       codeSent: (verificationId, resendToken) {
-        Future.delayed(Duration(seconds: 5), () {
-          if (!completer.isCompleted) {
-            final response = PhoneAuthResult(PhoneAuthStatus.code_sent,
-                verificationId: verificationId);
-            completer.complete(response);
-          }
-        });
+        final response = PhoneAuthResult(PhoneAuthStatus.code_sent,
+            verificationId: verificationId);
+        onData(response);
       },
       codeAutoRetrievalTimeout: (String verificationId) {
         final errorResponse = PhoneAuthResult(PhoneAuthStatus.timeout);
-        completer.complete(errorResponse);
+        onData(errorResponse);
       },
     );
-
-    return completer.future;
   }
 
   Future<dynamic> signInWithPhone(String phoneNumber) {
