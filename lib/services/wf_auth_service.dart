@@ -11,6 +11,24 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'wf_local_service.dart';
 
+enum PhoneAuthStatus {
+  code_sent,
+  completed,
+  timeout,
+  register_error,
+  phone_number_error,
+  invalid_code,
+  error,
+}
+
+class PhoneAuthResult {
+  PhoneAuthResult(this.status, {this.verificationId, this.user, this.error});
+  PhoneAuthStatus status;
+  String? verificationId;
+  dynamic user;
+  String? error;
+}
+
 class WfAuthService<T> extends BaseService {
   WfLocalService localService;
   WfAuthService({required this.localService});
@@ -46,117 +64,6 @@ class WfAuthService<T> extends BaseService {
     }
     return null;
   }
-
-  // Future getCodeWithPhoneNumber(String phoneNumber, String routes) {
-  //   showWaitingDialog(Get.context);
-  //   return fbAuth.verifyPhoneNumber(
-  //       phoneNumber: phoneNumber,
-  //       timeout: const Duration(seconds: 60),
-  //       verificationCompleted: (AuthCredential credential) async {
-  //         await fbAuth
-  //             .signInWithCredential(credential)
-  //             .then((UserCredential authResult) {
-  //           if (authResult != null && authResult.user != null) {
-  //             print('Authentication successful');
-  //             handleAuthResult(authResult.user, routes);
-  //           } else {
-  //             alertDialog(Get.context,
-  //                 title:
-  //                     AppLocalizations.of(Get.context).translate("errorTitle"),
-  //                 content: "Thất bại" //Keys.invalidPhone.tr
-  //                 );
-  //           }
-  //         }).catchError((error) {
-  //           alertDialog(Get.context,
-  //               title: AppLocalizations.of(Get.context).translate("errorTitle"),
-  //               content: AppLocalizations.of(Get.context)
-  //                   .translate("tryAgainError"));
-  //         });
-  //       },
-  //       verificationFailed: (FirebaseAuthException authException) {
-  //         // Todo please show error from error object
-  //         print('Error message: ' +
-  //             authException.code +
-  //             "..." +
-  //             authException.message);
-  //         var errorMessage = authException.message;
-  //         if (authException.code == 'too-many-requests') {
-  //           errorMessage =
-  //               AppLocalizations.of(Get.context).translate('exceedingCode');
-  //         }
-  //         Get.back();
-  //         alertDialog(Get.context,
-  //             title: AppLocalizations.of(Get.context).translate("errorTitle"),
-  //             content: errorMessage);
-  //         // isLoginLoading = false;
-  //       },
-  //       codeSent: (String verificationId, [int forceResendingToken]) async {
-  //         Get.back();
-  //         actualCode = verificationId;
-  //         //  isLoginLoading = false;
-  //         Get.toNamed(Routes.CODE, arguments: {
-  //           'phone': phoneNumber,
-  //           'verificationId': actualCode,
-  //           'routes': routes
-  //         });
-  //       },
-  //       codeAutoRetrievalTimeout: (String verificationId) {
-  //         actualCode = verificationId;
-  //       });
-  // }
-
-  // Future<void> handleAuthResult(User user, String routes) async {
-  //   // Todo try to login here
-  //   firebaseUser.value = user;
-  //   var account = await firebaseService.checkUId(firebaseUser.value.uid);
-
-  //   if (account == null) {
-  //     account = Account(
-  //         id: firebaseUser.value.uid,
-  //         phone: firebaseUser.value.phoneNumber,
-  //         email: firebaseUser.value.email,
-  //         avatar: firebaseUser.value.photoURL,
-  //         progress: {});
-  //     // firebaseService.createUser(account);
-  //     Get.offAllNamed(Routes.REGISTER_PROFILE, arguments: account);
-  //   } else {
-  //     accountService.me.value = account;
-  //     accountService.resetLocalNotice();
-  //     accountService.listenNoticeOfMeChange();
-  //     lessonService.syncLessonStatus();
-  //     lessonService.syncAllTaskList();
-  //     accountService.registerMeChange();
-
-  //     if (routes == "null" || routes == null) {
-  //       Get.offAllNamed(Routes.HOME);
-  //       showToast(
-  //           AppLocalizations.of(Get.context).translate("loginSuccessMessage"));
-  //     } else {
-  //       Get.offNamedUntil(routes, ModalRoute.withName(routes));
-  //       showToast(
-  //           AppLocalizations.of(Get.context).translate("loginSuccessMessage"));
-  //     }
-  //   }
-  // }
-
-  // validateOtpAndLogin(
-  //     BuildContext context, String smsCode, String routes) async {
-  //   //isOtpLoading = true;
-  //   final AuthCredential _authCredential = PhoneAuthProvider.credential(
-  //       verificationId: actualCode, smsCode: smsCode);
-  //   await fbAuth.signInWithCredential(_authCredential).catchError((error) {
-  //     print("Lỗi OTP " + error);
-  //     //isOtpLoading = false;
-  //     Get.back();
-  //     alertDialog(context,
-  //         title: "OTP",
-  //         content: AppLocalizations.of(context).translate("invalidOTP"));
-  //   }).then((UserCredential authResult) {
-  //     if (authResult != null && authResult.user != null) {
-  //       handleAuthResult(authResult.user, routes);
-  //     }
-  //   });
-  // }
 
   Future<Map> signInWithGoogle() async {
     final GoogleSignInAccount? googleSignInAccount =
@@ -200,7 +107,8 @@ class WfAuthService<T> extends BaseService {
           print('@facebookToken ${token.token}}');
           BaseResponse response;
           try {
-            response = await client.facebookLogin({"facebookToken": token.token});
+            response =
+                await client.facebookLogin({"facebookToken": token.token});
             if (response.code == 200) {
               setAccessToken(response.results['token']);
               cacheLoginType(FACEBOOK_LOGIN_TYPE);
@@ -240,6 +148,67 @@ class WfAuthService<T> extends BaseService {
       return buildErrorResponse(e.toString());
     }
     return response.toJson();
+  }
+
+  Future<PhoneAuthResult> confirmCodeV2(
+      String verificationId, String code) async {
+    final credential = await PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: code,
+    );
+    try {
+      final res = await _parseFirebaseToken(credential);
+      return PhoneAuthResult(PhoneAuthStatus.completed, user: res);
+    } catch (e) {
+      if (e is FirebaseAuthException) {
+        if (e.code == 'invalid-verification-code') {
+          return PhoneAuthResult(PhoneAuthStatus.invalid_code);
+        }
+        return PhoneAuthResult(PhoneAuthStatus.error, error: e.toString());
+      }
+      return PhoneAuthResult(PhoneAuthStatus.error, error: e.toString());
+    }
+  }
+
+  Future<PhoneAuthResult> siginInWithPhoneV2(String phoneNumber) {
+    final completer = Completer<PhoneAuthResult>();
+    FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        try {
+          final res = await _parseFirebaseToken(credential);
+          final completeResponse =
+              PhoneAuthResult(PhoneAuthStatus.completed, user: res);
+          completer.complete(completeResponse);
+        } catch (e) {
+          final errorResponse = PhoneAuthResult(PhoneAuthStatus.register_error,
+              error: e.toString());
+          completer.complete(errorResponse);
+        }
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        if (e.code == 'invalid-phone-number') {
+          final errorResponse =
+              PhoneAuthResult(PhoneAuthStatus.phone_number_error);
+          completer.complete(errorResponse);
+        } else {
+          final errorResponse =
+              PhoneAuthResult(PhoneAuthStatus.error, error: e.toString());
+          completer.complete(errorResponse);
+        }
+      },
+      codeSent: (verificationId, resendToken) {
+        final response = PhoneAuthResult(PhoneAuthStatus.code_sent,
+            verificationId: verificationId);
+        completer.complete(response);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        final errorResponse = PhoneAuthResult(PhoneAuthStatus.timeout);
+        completer.complete(errorResponse);
+      },
+    );
+
+    return completer.future;
   }
 
   Future<dynamic> signInWithPhone(String phoneNumber) {
