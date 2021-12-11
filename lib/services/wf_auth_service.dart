@@ -175,15 +175,18 @@ class WfAuthService<T> extends BaseService {
     FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
-        try {
-          final res = await _parseFirebaseToken(credential);
-          final completeResponse =
-              PhoneAuthResult(PhoneAuthStatus.completed, user: res);
-          completer.complete(completeResponse);
-        } catch (e) {
-          final errorResponse = PhoneAuthResult(PhoneAuthStatus.register_error,
-              error: e.toString());
-          completer.complete(errorResponse);
+        if (!completer.isCompleted) {
+          try {
+            final res = await _parseFirebaseToken(credential);
+            final completeResponse =
+                PhoneAuthResult(PhoneAuthStatus.completed, user: res);
+            completer.complete(completeResponse);
+          } catch (e) {
+            final errorResponse = PhoneAuthResult(
+                PhoneAuthStatus.register_error,
+                error: e.toString());
+            completer.complete(errorResponse);
+          }
         }
       },
       verificationFailed: (FirebaseAuthException e) {
@@ -198,9 +201,13 @@ class WfAuthService<T> extends BaseService {
         }
       },
       codeSent: (verificationId, resendToken) {
-        final response = PhoneAuthResult(PhoneAuthStatus.code_sent,
-            verificationId: verificationId);
-        completer.complete(response);
+        Future.delayed(Duration(seconds: 5), () {
+          if (!completer.isCompleted) {
+            final response = PhoneAuthResult(PhoneAuthStatus.code_sent,
+                verificationId: verificationId);
+            completer.complete(response);
+          }
+        });
       },
       codeAutoRetrievalTimeout: (String verificationId) {
         final errorResponse = PhoneAuthResult(PhoneAuthStatus.timeout);
